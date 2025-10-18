@@ -1,0 +1,31 @@
+name: Deploy to Kubernetes via Argo CD
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+      ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
+      ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Argo CD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to Argo CD
+        run: |
+          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
+
+      - name: Sync Application
+        run: |
+          argocd app sync ecommerce-platform
+
