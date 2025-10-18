@@ -1,0 +1,207 @@
+---
+# Source: ecommerce-platform/templates/backend1-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-management-api-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: user-management-api
+  ports:
+    - protocol: TCP
+      port: 3001
+      targetPort: 3001
+---
+# Source: ecommerce-platform/templates/backend2-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-processing-api-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: payment-processing-api
+  ports:
+    - protocol: TCP
+      port: 3002
+      targetPort: 3002
+---
+# Source: ecommerce-platform/templates/frontend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopping-cart-frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: shopping-cart-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+# Source: ecommerce-platform/templates/backend1-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-management-api
+  labels:
+    app: user-management-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-management-api
+  template:
+    metadata:
+      labels:
+        app: user-management-api
+    spec:
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: user-management-api
+          image: "mohamedmakram/user-management-api:v1.0.7"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          env:
+            - name: API_TIMEOUT
+              value: "30"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3001"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+---
+# Source: ecommerce-platform/templates/backend2-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-processing-api
+  labels:
+    app: payment-processing-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-processing-api
+  template:
+    metadata:
+      labels:
+        app: payment-processing-api
+    spec:
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: payment-processing-api
+          image: "mohamedmakram/backend-py:v1.0.5"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3002
+          env:
+            - name: API_TIMEOUT
+              value: "30"
+            - name: FLASK_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: PORT
+              value: "3002"
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+---
+# Source: ecommerce-platform/templates/frontend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopping-cart-frontend
+  labels:
+    app: shopping-cart-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shopping-cart-frontend
+  template:
+    metadata:
+      labels:
+        app: shopping-cart-frontend
+    spec:
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: shopping-cart-frontend
+          image: "mohamedmakram/frontend:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: REACT_APP_API_BASE_URL
+              value: "http://user-management-api-service:3001"
+            - name: REACT_APP_PAYMENT_API_BASE_URL
+              value: "http://payment-processing-api-service:3002"
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+---
+# Source: ecommerce-platform/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ecommerce-platform-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: false
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ecommerce.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shopping-cart-frontend-service
+                port:
+                  number: 3000

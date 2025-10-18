@@ -1,0 +1,21 @@
+apiVersion: v2
+name: ecommerce-platform
+description: E-commerce Platform - User Management, Payment Processing, Shopping Cart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - user-management
+  - payment-processing
+  - shopping-cart
+  - nodejs
+  - python
+  - react
+home: https://github.com/your-org/devops-project
+sources:
+  - https://github.com/your-org/devops-project
+maintainers:
+  - name: DevOps Team
+    email: devops@company.com
+
